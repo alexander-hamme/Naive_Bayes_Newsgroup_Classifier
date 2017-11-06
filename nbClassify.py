@@ -2,9 +2,7 @@
 train/test data with one text-document per line.  First item of each
 line is category; remaining items are space-delimited words.  
 
-Author: Your name here
-
-Date: XX.Oct.2017
+Author: Alexander Hamme
 
 '''
 from __future__ import print_function
@@ -95,6 +93,8 @@ class NaiveBayes():
         :param word_dict: E.g. {'word':5, 'automobile':7, 'dog':3}
         :return: new dictionary in the form of {'word':0.33, 'automobile':0.46, 'dog':0.2}
         '''
+        
+        # TODO:   Probability of  p(wi|vj), word i given category j
         numb_words = len(word_dict)
         prob_dict = dict()
         print ("list of dicts =", word_dict)
