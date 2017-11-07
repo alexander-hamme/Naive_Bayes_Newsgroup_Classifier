@@ -21,7 +21,7 @@ class NaiveBayes():
     First word is classification, a string.
     Remainder of line is space-delimited text.
     '''
-    
+
     def __init__(self, train=None):
         '''Create classifier using train, the name of an input
         training file.
@@ -219,7 +219,7 @@ def argmax(lst):
 
 def main():
 
-    verbose = False
+    verbose = True
 
     """
 
@@ -238,12 +238,7 @@ def main():
         nbclassifier = NaiveBayes()
         nbclassifier.load_pickle_file(filename)
 
-
-    # print(nbclassifier.dict_count)
-
     nbclassifier.printClasses()
-
-    # testingSets, _ = nbclassifier.load_text_file("20ng-test-stemmed.txt")
 
     accuracyScores = []
 
@@ -255,6 +250,8 @@ def main():
     numb_wrong = 0
     numb_right = 0
     total_numb = 0
+
+    start = time.time()
 
     for i, line in enumerate(document):
         # id, *word = line.split()
@@ -278,12 +275,15 @@ def main():
             total_numb += 1
 
         if not (i % 100):  # Print update every 1000 lines
-            print("Progress: {} of {} lines processed".format(i + 1, length))
+            print("Progress: {} of {} lines classified".format(i + 1, length))
 
-    print("Number correct: {}\nNumber incorrect: {}\nTotal trials: {}\nFinal accuracy: {}".format(
-        numb_right, numb_wrong, total_numb,
-        float(sum(accuracyScores)) / len(accuracyScores)
-    ))
+    print("Elapsed classification time: {}m {}s\nNumber correct: {}\nNumber incorrect: {}"
+          "\nTotal trials: {}\nFinal accuracy: {}".format(
+                                                          int((time.time() - start) / 60), (time.time() - start) % 60,
+                                                          numb_right, numb_wrong, total_numb,
+                                                          float(sum(accuracyScores)) / len(accuracyScores)
+                                                          )
+          )
 
     raise SystemExit()
 
@@ -300,4 +300,4 @@ if __name__ == "__main__":
     main()
 
 
-    
+
