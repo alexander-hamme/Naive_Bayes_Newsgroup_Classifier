@@ -2,13 +2,18 @@
 train/test data with one text-document per line.  First item of each
 line is category; remaining items are space-delimited words.  
 
-Author: Alexander Hamme
+Author: Your name here
+
+Date: XX.Oct.2017
 
 '''
 from __future__ import print_function
-import sys
+import pickle
 import math
 import time
+import sys
+import os
+
 
 class NaiveBayes():
     '''Naive Bayes classifier for text data.
@@ -17,14 +22,16 @@ class NaiveBayes():
     Remainder of line is space-delimited text.
     '''
     
-    def __init__(self, train):
+    def __init__(self, train=None):
         '''Create classifier using train, the name of an input
         training file.
         '''
         self.vocab = []
         self.categories = dict()
         self.dict_count = dict()
-        self.learn(train)               # loads train data, fills prob. table
+        self.filename = "word_dict"
+        if train:
+            self.learn(train)               # loads train data, fills prob. table
         self.vocSize = len(set(self.vocab))  # unique words in vocab
 
     def printClasses(self):
@@ -49,7 +56,7 @@ class NaiveBayes():
                 id, words = data[0], data[1:]
 
                 if id in self.categories.keys():
-                    self.categories[id] += words
+                    self.categories[id].extend(words)
                 else:
                     self.categories[id] = words
                 # if id in self.categories.keys():
@@ -86,6 +93,9 @@ class NaiveBayes():
         print(len(self.dict_count))
         print("Total elapsed time: {}m {}s".format(int((time.time()-t)/60), (time.time()-t) % 60))
 
+        with open(self.filename + '.pickle', 'wb') as handle:
+            pickle.dump(self.dict_count, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 
     def convert_to_probability(self, word_dict):
         '''
@@ -93,26 +103,60 @@ class NaiveBayes():
         :param word_dict: E.g. {'word':5, 'automobile':7, 'dog':3}
         :return: new dictionary in the form of {'word':0.33, 'automobile':0.46, 'dog':0.2}
         '''
-        
-        # TODO:   Probability of  p(wi|vj), word i given category j
-        numb_words = len(word_dict)
+        assert isinstance(word_dict, dict)
+        numb_words = float(sum(word_dict.itervalues()))
+        print("number of words = ", numb_words)
         prob_dict = dict()
-        print ("list of dicts =", word_dict)
 
         for key, val in word_dict.iteritems():
-            prob_dict[key] = val / float(numb_words)
+            prob_dict[key] = val / numb_words
 
         return prob_dict
         # for word in word_dict:
         #     prob_dict[str(word.keys())] = map(lambda v: v/numb_words, word.values())
         # return prob_dict
 
+    """ GUESS category based on series of words:
+
+	category_votes = {label: 0 for label in self.categories}
+	
+	
+	for word in words:
+		most_prob_cat = ""
+		
+		max_inversed_prob = 0
+		
+		for cat in prob_dict
+			inversed_prob = 1.0 - prob_dict.get(cat).get(word) 
+			if (inversed_prob) > max_inversed_prob:
+				most_prob_cat = cat
+				max_inversed_prob = inversed_prob
+			elif (1 - prob_dict.get(cat).get(word)) == max_inversed_prob:
+				most_prob_cat = cat	# add a vote to this category too, because it's equally likely
+		
+		category_votes[most_prob_cat] = category_votes.get(most_prob_cat) + 1
+
+	return self.convert_to_probability(category_votes)
+	
+    """
+
+
 def argmax(lst):
     return lst.index(max(lst))
     
 def main():
 
-    nbclassifier = NaiveBayes("20ng-test-stemmed.txt")
+    filename = "word_dict"
+
+    if not os.path.exists(filename + '.pickle'):
+        nbclassifier = NaiveBayes("20ng-test-stemmed.txt")
+    else:
+        nbclassifier = NaiveBayes()
+
+        with open(filename + '.pickle', 'rb') as handle:
+            nbclassifier.dict_count = pickle.load(handle)
+
+        print("loaded pickle file")
 
     for category in nbclassifier.dict_count:
         print("Probability dict for {} is {}".format(
