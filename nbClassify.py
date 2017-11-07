@@ -2,9 +2,9 @@
 train/test data with one text-document per line.  First item of each
 line is category; remaining items are space-delimited words.  
 
-Author: Your name here
+Author: Alex Hamme
 
-Date: XX.Oct.2017
+Date: 7.Nov.2017
 
 '''
 from __future__ import print_function
