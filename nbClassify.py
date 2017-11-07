@@ -27,23 +27,33 @@ class NaiveBayes():
         training file.
         '''
         self.vocab = []
-        self.categories = dict()
-        self.dict_count = dict()
+        self.categories = dict()            # Dict of prior probabilities for each category
+        self.final_dict = dict()
         self.filename = "word_dict"
+        self.fullVocSize = 0
+        self.uniqueVocSize = 0  # unique words in vocab
         if train:
             self.learn(train)               # loads train data, fills prob. table
-        self.vocSize = len(set(self.vocab))  # unique words in vocab
+
+    def load_pickle_file(self, filename):
+        with open(filename + '.pickle', 'rb') as handle:
+            self.final_dict = pickle.load(handle)
+
+        self.categories = {key: 0.0 for key in self.final_dict.iterkeys()}
+
+        print("loaded pickle file")
+        print(self.categories)
 
     def printClasses(self):
         print(self.categories)
 
-    def learn(self, traindat):
-        '''Load data for training; adding to 
-        dictionary of classes and counting words.'''
 
-        t = time.time()
+    def load_text_file(self, filename):
 
-        with open(traindat,'rb') as fd:
+        categorySets = dict()
+        vocab = []
+
+        with open(filename,'rb') as fd:
 
             document = fd.readlines()
             length = len(document)
@@ -55,47 +65,67 @@ class NaiveBayes():
 
                 id, words = data[0], data[1:]
 
-                if id in self.categories.keys():
-                    self.categories[id].extend(words)
+                if id in categorySets.keys():
+                    categorySets[id].extend(words)
                 else:
-                    self.categories[id] = words
-                # if id in self.categories.keys():
-                #     for word in words:
-                #         if word in self.categories[id].itervalues():
-                #             self.categories[id][word]
+                    categorySets[id] = words
 
-                self.vocab.extend(words)
-
-                # print(id, words)
-                # TODO
+                vocab.extend(words)
 
                 if not(i % 1000):          # Print update every 1000 lines
                     print("Progress: {} of {} lines processed".format(i+1, length))
 
-        print("Processed {} of {} lines".format(i+1, length))
+            print("Processed {} of {} lines".format(i + 1, length))
+
+        self.fullVocSize += len(vocab)
+        self.uniqueVocSize = len(set(vocab))
 
 
-        for i, cat in enumerate(self.categories.iterkeys()):       # Python 3:  .items()
-            all_words = self.categories.get(cat)
+        print("{} total words categorized".format(self.fullVocSize))
+
+        self.categories = {key: 0.0 for key in categorySets.iterkeys()}
+
+        return categorySets, vocab
+
+
+    def learn(self, traindat):
+        '''Load data for training; adding to 
+        dictionary of classes and counting words.'''
+
+        t = time.time()
+
+        categorySets, vocab = self.load_text_file(traindat)
+
+        assert len(categorySets) > 1
+
+        for i, cat in enumerate(categorySets.iterkeys()):       # Python 3:  .items()
+
+            all_words = categorySets.get(cat)
+
+            self.categories[cat] = len(all_words) / float(self.fullVocSize)         # Calculate prior probability
+
             assert isinstance(all_words, list)
+
             unique_words = set(all_words)
 
-            counts = {}
+            counts = {wrd: all_words.count(wrd) for wrd in unique_words}
 
-            for wrd in unique_words:
-                counts[wrd] = all_words.count(wrd)
+            # for wrd in unique_words:
+            #     counts[wrd] = all_words.count(wrd)
 
             print("Progress: {} of 20 labels processed".format(i+1))
 
-            self.dict_count[cat] = counts
+            self.final_dict[cat] = counts
 
-        print(self.dict_count)
-        print(len(self.dict_count))
-        print("Total elapsed time: {}m {}s".format(int((time.time()-t)/60), (time.time()-t) % 60))
+        print("Length of dict_count: ", len(self.final_dict))
+        print("Total elapsed training time: {}m {}s".format(int((time.time()-t)/60), (time.time()-t) % 60))
 
         with open(self.filename + '.pickle', 'wb') as handle:
-            pickle.dump(self.dict_count, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.final_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            print("Serialized dictionary to file")
 
+    def test(self, testdat):
+        pass
 
     def convert_to_probability(self, word_dict):
         '''
@@ -105,7 +135,10 @@ class NaiveBayes():
         '''
         assert isinstance(word_dict, dict)
         numb_words = float(sum(word_dict.itervalues()))
-        print("number of words = ", numb_words)
+
+        if not(numb_words):
+            return {}
+
         prob_dict = dict()
 
         for key, val in word_dict.iteritems():
@@ -116,57 +149,141 @@ class NaiveBayes():
         #     prob_dict[str(word.keys())] = map(lambda v: v/numb_words, word.values())
         # return prob_dict
 
-    """ GUESS category based on series of words:
+    def guessCategory(self, list_of_words):
 
-	category_votes = {label: 0 for label in self.categories}
-	
-	
-	for word in words:
-		most_prob_cat = ""
-		
-		max_inversed_prob = 0
-		
-		for cat in prob_dict
-			inversed_prob = 1.0 - prob_dict.get(cat).get(word) 
-			if (inversed_prob) > max_inversed_prob:
-				most_prob_cat = cat
-				max_inversed_prob = inversed_prob
-			elif (1 - prob_dict.get(cat).get(word)) == max_inversed_prob:
-				most_prob_cat = cat	# add a vote to this category too, because it's equally likely
-		
-		category_votes[most_prob_cat] = category_votes.get(most_prob_cat) + 1
+        if not(len(self.categories)) and not(len(self.final_dict)):
+            raise SystemExit("Classifier has not been trained yet")
+        elif not(len(list_of_words)):
+            print("List of words is empty")
+            return ""
 
-	return self.convert_to_probability(category_votes)
-	
-    """
+        category_votes = {cat: 0 for cat in self.categories}
+
+        probability_dict = dict()
+
+        for category, dct in self.final_dict.iteritems():
+            probability_dict[category] = self.convert_to_probability(dct)
+
+        for word in list_of_words:
+            most_likely_cat = ""
+            max_prob = 0
+
+            for cat, dct in probability_dict.iteritems():#self.final_dict.iteritems():
+
+                probability = dct.get(word)
+
+                if not(probability):    # Current newsgroup category does not contain current word
+                    continue
+
+                if (probability) > max_prob:
+                    most_likely_cat = cat
+                    max_prob = probability
+
+                elif probability == max_prob:
+                    most_likely_cat = cat  # add a vote to this category too, because it's equally likely
+
+            # Handle error!!!
+
+            if not len(most_likely_cat):
+                continue
+
+            # print("Getting {} from dict".format(most_likely_cat))
+
+            category_votes[most_likely_cat] = category_votes.get(most_likely_cat) + 1
+
+        # self.convert_to_probability(category_votes)
+
+        total_votes = float(sum(category_votes.itervalues()))
+
+        for cat, votes in category_votes.iteritems():
+            probability = self.categories.get(cat) * votes/total_votes
+
+
+        if not category_votes:
+            return ""
+
+        # print("Category votes = ", category_votes)
+
+        max_votes = 0
+        k_to_return = ""
+        for k, v in category_votes.items():
+            if v > max_votes:
+                k_to_return = k
+                max_votes = v
+
+        return k_to_return
 
 
 def argmax(lst):
     return lst.index(max(lst))
-    
+
 def main():
+
+    verbose = False
+
+    """
+
+    IMPORTANT:
+
+    Prior probability of each category is number of words in it DIVIDED by total number of words
+
+    :return:
+    """
 
     filename = "word_dict"
 
     if not os.path.exists(filename + '.pickle'):
-        nbclassifier = NaiveBayes("20ng-test-stemmed.txt")
+        nbclassifier = NaiveBayes("20ng-train-stemmed.txt")
     else:
         nbclassifier = NaiveBayes()
+        nbclassifier.load_pickle_file(filename)
 
-        with open(filename + '.pickle', 'rb') as handle:
-            nbclassifier.dict_count = pickle.load(handle)
 
-        print("loaded pickle file")
+    # print(nbclassifier.dict_count)
 
-    for category in nbclassifier.dict_count:
-        print("Probability dict for {} is {}".format(
-            category, nbclassifier.convert_to_probability(nbclassifier.dict_count.get(category)))
-        )
+    nbclassifier.printClasses()
 
-    # for val in nbclassifier.dict_count.values():
-    #     blah
+    # testingSets, _ = nbclassifier.load_text_file("20ng-test-stemmed.txt")
 
-    # nbclassifier.printClasses()
+    accuracyScores = []
+
+    with open("20ng-test-stemmed.txt", "rb") as fd:
+
+        document = fd.readlines()
+        length = len(document)
+
+    numb_wrong = 0
+    numb_right = 0
+    total_numb = 0
+
+    for i, line in enumerate(document):
+        # id, *word = line.split()
+        data = line.split()
+        answer, wordsToClassify = data[0], data[1:]
+
+        guess = nbclassifier.guessCategory(wordsToClassify)
+
+        if len(guess) > 0:
+            if answer == guess:
+                if verbose:
+                    print("Guessed answer {} correctly".format(answer))
+                accuracyScores.append(1)
+                numb_right += 1
+            else:
+                if verbose:
+                    print("Incorrectly guessed {}, correct answer was {}".format(guess, answer))
+                accuracyScores.append(0)
+                numb_wrong += 1
+
+            total_numb += 1
+
+        if not (i % 100):  # Print update every 1000 lines
+            print("Progress: {} of {} lines processed".format(i + 1, length))
+
+    print("Number correct: {}\nNumber incorrect: {}\nTotal trials: {}\nFinal accuracy: {}".format(
+        numb_right, numb_wrong, total_numb,
+        float(sum(accuracyScores)) / len(accuracyScores)
+    ))
 
     raise SystemExit()
 
