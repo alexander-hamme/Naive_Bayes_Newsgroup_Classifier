@@ -73,7 +73,7 @@ class NaiveBayes():
                 vocab.extend(words)
 
                 if not(i % 1000):          # Print update every 1000 lines
-                    print("Progress: {} of {} lines processed".format(i+1, length))
+                    print("Progress: {} of {} lines processed".format(i, length))
 
             print("Processed {} of {} lines".format(i + 1, length))
 
@@ -274,8 +274,8 @@ def main():
 
             total_numb += 1
 
-        if not (i % 100):  # Print update every 1000 lines
-            print("Progress: {} of {} lines classified".format(i + 1, length))
+        if not (i % 100):  # Print update every 100 lines
+            print("Progress: {} of {} lines classified".format(i, length))
 
     print("Elapsed classification time: {}m {}s\nNumber correct: {}\nNumber incorrect: {}"
           "\nTotal trials: {}\nFinal accuracy: {}".format(
