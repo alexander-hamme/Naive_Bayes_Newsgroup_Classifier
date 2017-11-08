@@ -9,8 +9,9 @@ Date: 7.Nov.2017
 '''
 from __future__ import print_function
 import pickle
-import math
+import random
 import time
+import math
 import sys
 import os
 
@@ -41,8 +42,17 @@ class NaiveBayes():
 
         self.categories = {key: 0.0 for key in self.final_dict.iterkeys()}
 
+        total_numb_words = 0
+        for cat in self.final_dict:
+            words = sum(self.final_dict.get(cat).itervalues())
+            self.categories[cat] = words
+            total_numb_words += words
+
+        for cat, val in self.categories.iteritems():
+            self.categories[cat] = val / float(total_numb_words)
+
         print("loaded pickle file")
-        print(self.categories)
+        print("Category prior probabilities = ", self.categories)
 
     def printClasses(self):
         print(self.categories)
@@ -52,8 +62,9 @@ class NaiveBayes():
 
         categorySets = dict()
         vocab = []
+        numb_lines = {}
 
-        with open(filename,'rb') as fd:
+        with open(filename, 'rb') as fd:
 
             document = fd.readlines()
             length = len(document)
@@ -70,6 +81,11 @@ class NaiveBayes():
                 else:
                     categorySets[id] = words
 
+                if id in numb_lines:
+                    numb_lines[id] = numb_lines.get(id) + 1
+                else:
+                    numb_lines[id] = 1
+
                 vocab.extend(words)
 
                 if not(i % 1000):          # Print update every 1000 lines
@@ -77,13 +93,21 @@ class NaiveBayes():
 
             print("Processed {} of {} lines".format(i + 1, length))
 
-        self.fullVocSize += len(vocab)
-        self.uniqueVocSize = len(set(vocab))
 
+        total_lines = float(sum(numb_lines.itervalues()))
+
+        print("Total lines = ", total_lines)
+
+        for cat, count in numb_lines.iteritems():
+            print("Dividing {} by total lines = {}".format(count, count/total_lines))
+            self.categories[cat] = count / total_lines
+
+        self.fullVocSize = len(vocab)
+        self.uniqueVocSize = len(set(vocab))
 
         print("{} total words categorized".format(self.fullVocSize))
 
-        self.categories = {key: 0.0 for key in categorySets.iterkeys()}
+        # self.categories = {key: 0.0 for key in categorySets.iterkeys()}
 
         return categorySets, vocab
 
@@ -102,7 +126,9 @@ class NaiveBayes():
 
             all_words = categorySets.get(cat)
 
-            self.categories[cat] = len(all_words) / float(self.fullVocSize)         # Calculate prior probability
+
+            '''Calculate prior probability'''
+            # self.categories[cat] = len(all_words) / float(self.fullVocSize)         # Calculate prior probability
 
             assert isinstance(all_words, list)
 
@@ -149,20 +175,50 @@ class NaiveBayes():
         #     prob_dict[str(word.keys())] = map(lambda v: v/numb_words, word.values())
         # return prob_dict
 
-    def guessCategory(self, list_of_words):
+    def guessCategory(self, list_of_words, prob_dict, version="raw"):
 
         if not(len(self.categories)) and not(len(self.final_dict)):
             raise SystemExit("Classifier has not been trained yet")
+
         elif not(len(list_of_words)):
             print("List of words is empty")
             return ""
 
+        category_probs = {}
+
+        for cat, dct in prob_dict.iteritems():  # self.final_dict.iteritems():
+
+            probability = self.categories.get(cat)          # Prior probability
+
+            for word in list_of_words:
+
+                word_prob = dct.get(word)
+                if not word_prob:
+                    probability = 0
+                else:
+                    probability *= word_prob
+
+            category_probs[cat] = probability
+
+        max_prob = 0.0
+        k_to_return = ""
+        for k, v in category_probs.items():
+            if v > max_prob:
+                k_to_return = k
+                max_prob = v
+
+        # print("Category probs = ", category_probs)
+
+        if not len(k_to_return):
+            return random.choice(self.categories.keys())#[0]
+
+        return k_to_return
+
+
+        """
+        ''' NO.  Iterate through all categories, and see which is the most likely to contain these words'''
+
         category_votes = {cat: 0 for cat in self.categories}
-
-        probability_dict = dict()
-
-        for category, dct in self.final_dict.iteritems():
-            probability_dict[category] = self.convert_to_probability(dct)
 
         for word in list_of_words:
             most_likely_cat = ""
@@ -212,14 +268,14 @@ class NaiveBayes():
                 max_votes = v
 
         return k_to_return
-
+        """
 
 def argmax(lst):
     return lst.index(max(lst))
 
 def main():
 
-    verbose = True
+    verbose = False
 
     """
 
@@ -240,6 +296,10 @@ def main():
 
     nbclassifier.printClasses()
 
+    if verbose:
+        for k in nbclassifier.final_dict:
+            print("Final dict: \n", k, ':\n', nbclassifier.final_dict.get(k))
+
     accuracyScores = []
 
     with open("20ng-test-stemmed.txt", "rb") as fd:
@@ -253,12 +313,23 @@ def main():
 
     start = time.time()
 
+    for cat in nbclassifier.categories:
+        print("Prior probability of {} is {}".format(cat, nbclassifier.categories.get(cat)))
+
+    probability_dict = dict()
+
+    for category, dct in nbclassifier.final_dict.iteritems():
+        probability_dict[category] = nbclassifier.convert_to_probability(dct)
+
+    # for cat, val in probability_dict.items():
+    #     print("Category dict: {} {}".format(cat, val))
+
     for i, line in enumerate(document):
         # id, *word = line.split()
         data = line.split()
         answer, wordsToClassify = data[0], data[1:]
 
-        guess = nbclassifier.guessCategory(wordsToClassify)
+        guess = nbclassifier.guessCategory(wordsToClassify, probability_dict)
 
         if len(guess) > 0:
             if answer == guess:
@@ -272,7 +343,7 @@ def main():
                 accuracyScores.append(0)
                 numb_wrong += 1
 
-            total_numb += 1
+        total_numb += 1
 
         if not (i % 100):  # Print update every 100 lines
             print("Progress: {} of {} lines classified".format(i, length))
@@ -281,7 +352,8 @@ def main():
           "\nTotal trials: {}\nFinal accuracy: {}".format(
                                                           int((time.time() - start) / 60), (time.time() - start) % 60,
                                                           numb_right, numb_wrong, total_numb,
-                                                          float(sum(accuracyScores)) / len(accuracyScores)
+                                                          # float(sum(accuracyScores)) / len(accuracyScores)
+                                                          float(numb_right) / total_numb
                                                           )
           )
 
