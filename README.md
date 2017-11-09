@@ -6,7 +6,7 @@ the classifier's accuracy for the three methods tested (raw probabilities, m-est
 
 10.069% --- raw<br>
 45.842% --- m-estimate<br>
-72.968% --- tf-idf weighted
+72.968% --- tf-idf weighted + m-estimate
 
 The highest accuracy was achieved using both the TF-IDF weighting method and the m-estimate word probability equations.
 
