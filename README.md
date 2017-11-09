@@ -12,6 +12,8 @@ The highest accuracy was achieved using both the TF-IDF weighting method and the
 
 -----
 
+###### A few notes
+
 the main equation for the naive Bayes classification is:
 
 ![probability equation image](equation.png "naive Bayes classification equation")
