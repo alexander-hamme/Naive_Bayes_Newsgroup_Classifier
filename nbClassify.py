@@ -23,287 +23,295 @@ class NaiveBayes():
     Remainder of line is space-delimited text.
     '''
 
-    def __init__(self, train=None):
+    def __init__(self, method, train=None, save=False):
         '''Create classifier using train, the name of an input
         training file.
         '''
+        self.method = method                        # "raw", "mest", or "tfidf"
         self.vocab = []
-        self.categories = dict()            # Dict of prior probabilities for each category
+        self.categoryPriorProbs = dict()            # Dict of prior probabilities for each category
+        self.categorySizes = dict()
         self.final_dict = dict()
-        self.filename = "word_dict"
+        self.filename = "word_frequencies_dict"     # filename to save to
         self.fullVocSize = 0
-        self.uniqueVocSize = 0  # unique words in vocab
+        self.uniqueVocSize = 0                      # unique number of words in total vocab
+        self.numbCategories = 20.0
         if train:
-            self.learn(train)               # loads train data, fills prob. table
+            self.learn(train, save=save)            # loads train data, fills probability table
 
     def load_pickle_file(self, filename):
         with open(filename + '.pickle', 'rb') as handle:
             self.final_dict = pickle.load(handle)
 
-        self.categories = {key: 0.0 for key in self.final_dict.iterkeys()}
+        self.categoryPriorProbs = self.final_dict.pop("prior_probabilities", None)
+
+        #TODO: self.categorySizes
+        # for cat, lst in category_dicts:
+        #     self.categorySizes[cat] = len(lst)
+
+        if not self.categoryPriorProbs:
+            raise SystemExit("Could not load prior_probabilities from serialized dictionary")
+
+        '''Does m-estimate have Uniform category Prior Probabilities???'''
+
+        # self.categoryPriorProbs = {key: 0.0 for key in self.final_dict.keys()}
 
         total_numb_words = 0
-        for cat in self.final_dict:
-            words = sum(self.final_dict.get(cat).itervalues())
-            self.categories[cat] = words
-            total_numb_words += words
 
-        for cat, val in self.categories.iteritems():
-            self.categories[cat] = val / float(total_numb_words)
+        # for cat in self.final_dict:
+        #     numb_words = sum(self.final_dict.get(cat).values())
+        #     self.categoryPriorProbs[cat] = numb_words
+        #     total_numb_words += numb_words
+        #
+        # for cat, val in self.categoryPriorProbs.items():
+        #     self.categoryPriorProbs[cat] = val / float(total_numb_words)
 
         print("loaded pickle file")
-        print("Category prior probabilities = ", self.categories)
 
-    def printClasses(self):
-        print(self.categories)
+    def printTrain(self, prob_dict, numb_lines):
+
+        print("############### TRAIN OUTPUT #########################")
+        print("Total # words\t{}".format(self.fullVocSize))
+        print("VocabSize\t\t{}".format(self.uniqueVocSize))
+        print("------------------------------------------------------")
+        print("Category\t\t\t\t\t\t NDoc\t\t\t\tNWords\t\t\tP(cat)")
+
+        for cat, dct in prob_dict.items():
+            print("{:<25} {:>10}\t\t\t{:>10}\t\t\t{:>10}".format(
+                cat, numb_lines.get(cat), len(dct), self.categoryPriorProbs.get(cat))
+            )
+
+    def printTest(self, cat_stats, cat_lines):
+        print("\n############### TEST OUTPUT #########################")
+        print("Category\t\t\t\t\t\tNCorrect\t\t\t\tN\t\t\t%corr")
+        for cat, numb in cat_stats.items():
+            print("{:<25} {:>10}\t\t\t{:>10}\t\t\t{:>10}".format(
+                cat, numb, cat_lines.get(cat), numb / float(cat_lines.get(cat))
+            ))
 
 
     def load_text_file(self, filename):
 
-        categorySets = dict()
-        vocab = []
-        numb_lines = {}
+        category_dicts = dict()     # divy words up into their categories. Of the form {"cat": [list of words], ...}
+
+        full_vocab = []             # list of all words in document
+
+        numb_lines = {}             # keep track of number of lines for each category, for prior probability calculation
 
         with open(filename, 'rb') as fd:
 
             document = fd.readlines()
-            length = len(document)
 
             for i, line in enumerate(document):
 
-                # id, *word = line.split()
                 data = line.split()
 
-                id, words = data[0], data[1:]
+                cat, words = data[0], data[1:]
 
-                if id in categorySets.keys():
-                    categorySets[id].extend(words)
+                if cat in category_dicts.keys():
+                    category_dicts[cat].extend(words)
                 else:
-                    categorySets[id] = words
+                    category_dicts[cat] = words
 
-                if id in numb_lines:
-                    numb_lines[id] = numb_lines.get(id) + 1
+                if cat in numb_lines:
+                    numb_lines[cat] = numb_lines.get(cat) + 1
                 else:
-                    numb_lines[id] = 1
+                    numb_lines[cat] = 1
 
-                vocab.extend(words)
+                full_vocab.extend(words)
 
-                if not(i % 1000):          # Print update every 1000 lines
-                    print("Progress: {} of {} lines processed".format(i, length))
+        total_lines = float(sum(numb_lines.values()))
 
-            print("Processed {} of {} lines".format(i + 1, length))
+        for cat, lst in category_dicts.items():
+            self.categorySizes[cat] = len(lst)
 
+        for cat, count in numb_lines.items():                           # calculate prior probabilities of categories
+            self.categoryPriorProbs[cat] = count / total_lines          # P(Vj) = |docsj| / |Examples|
 
-        total_lines = float(sum(numb_lines.itervalues()))
+        self.fullVocSize = len(full_vocab)
+        self.uniqueVocSize = len(set(full_vocab))
 
-        print("Total lines = ", total_lines)
+        self.printTrain(category_dicts, numb_lines)
 
-        for cat, count in numb_lines.iteritems():
-            print("Dividing {} by total lines = {}".format(count, count/total_lines))
-            self.categories[cat] = count / total_lines
+        return category_dicts, full_vocab
 
-        self.fullVocSize = len(vocab)
-        self.uniqueVocSize = len(set(vocab))
-
-        print("{} total words categorized".format(self.fullVocSize))
-
-        # self.categories = {key: 0.0 for key in categorySets.iterkeys()}
-
-        return categorySets, vocab
-
-
-    def learn(self, traindat):
+    def learn(self, traindat, save=False):
         '''Load data for training; adding to 
         dictionary of classes and counting words.'''
 
+        print("\nLearning...\n")
+
         t = time.time()
 
-        categorySets, vocab = self.load_text_file(traindat)
+        category_dicts, full_vocab = self.load_text_file(traindat)
 
-        assert len(categorySets) > 1
+        assert len(category_dicts) > 1
 
-        for i, cat in enumerate(categorySets.iterkeys()):       # Python 3:  .items()
+        for i, cat in enumerate(category_dicts.keys()):
 
-            all_words = categorySets.get(cat)
+            all_cat_words = category_dicts.get(cat)        # type --> list of words
 
+            unique_cat_words = list(set(all_cat_words))
 
-            '''Calculate prior probability'''
-            # self.categories[cat] = len(all_words) / float(self.fullVocSize)         # Calculate prior probability
+            """
+            
+            Sort the lists, so that counting occurrences of each word can be done by
+            one single iteration through the whole list, chunk by chunk, 
+            instead of searching the entire list for every single word
 
-            assert isinstance(all_words, list)
+            Also, converting lists to tuples before iteration gives a small boost in speed.
+            """
 
-            unique_words = set(all_words)
+            all_cat_words.sort()
+            unique_cat_words.sort()
 
-            counts = {wrd: all_words.count(wrd) for wrd in unique_words}
+            all_cat_words = tuple(all_cat_words)
+            unique_cat_words = tuple(unique_cat_words)
 
-            # for wrd in unique_words:
-            #     counts[wrd] = all_words.count(wrd)
+            counts = {}
 
-            print("Progress: {} of 20 labels processed".format(i+1))
+            last_idx = 0
+            for wrd in unique_cat_words:
+                count = 0
+                for w in all_cat_words[last_idx:]:          # continue from where iteration stopped at last word
+                    if w == wrd:
+                        count += 1
+                        last_idx += 1
+                    elif w > wrd:
+                        break
 
-            self.final_dict[cat] = counts
+                counts[wrd] = count
 
-        print("Length of dict_count: ", len(self.final_dict))
-        print("Total elapsed training time: {}m {}s".format(int((time.time()-t)/60), (time.time()-t) % 60))
+            print("Progress: {} of 20 categories processed".format(i+1))
 
-        with open(self.filename + '.pickle', 'wb') as handle:
-            pickle.dump(self.final_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            print("Serialized dictionary to file")
+            self.final_dict[cat] = counts    # dictionary of dictionaries, of form {"category1": {"word1": 3, ...}, ...}
 
-    def test(self, testdat):
-        pass
+        print("Total elapsed learning time: {}m {}s".format(int((time.time()-t)/60), (time.time()-t) % 60))
 
-    def convert_to_probability(self, word_dict):
-        '''
+        if save:        # serialize dictionary to file if desired
 
-        :param word_dict: E.g. {'word':5, 'automobile':7, 'dog':3}
-        :return: new dictionary in the form of {'word':0.33, 'automobile':0.46, 'dog':0.2}
-        '''
-        assert isinstance(word_dict, dict)
-        numb_words = float(sum(word_dict.itervalues()))
+            self.final_dict["prior_probabilities"] = self.categoryPriorProbs
 
-        if not(numb_words):
-            return {}
+            with open(self.filename + '.pickle', 'wb') as handle:
+                pickle.dump(self.final_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                print("Serialized dictionary to file")
 
-        prob_dict = dict()
-
-        for key, val in word_dict.iteritems():
-            prob_dict[key] = val / numb_words
-
-        return prob_dict
-        # for word in word_dict:
-        #     prob_dict[str(word.keys())] = map(lambda v: v/numb_words, word.values())
-        # return prob_dict
-
-    def guessCategory(self, list_of_words, prob_dict, version="raw"):
-
-        if not(len(self.categories)) and not(len(self.final_dict)):
-            raise SystemExit("Classifier has not been trained yet")
-
-        elif not(len(list_of_words)):
-            print("List of words is empty")
-            return ""
-
-        category_probs = {}
-
-        for cat, dct in prob_dict.iteritems():  # self.final_dict.iteritems():
-
-            probability = self.categories.get(cat)          # Prior probability
-
-            for word in list_of_words:
-
-                word_prob = dct.get(word)
-                if not word_prob:
-                    probability = 0
-                else:
-                    probability *= word_prob
-
-            category_probs[cat] = probability
-
+    def argmax(self, dct):
         max_prob = 0.0
         k_to_return = ""
-        for k, v in category_probs.items():
+        for k, v in dct.items():
             if v > max_prob:
                 k_to_return = k
                 max_prob = v
 
-        # print("Category probs = ", category_probs)
-
-        if not len(k_to_return):
-            return random.choice(self.categories.keys())#[0]
-
         return k_to_return
 
+    def convert_to_probability(self, wrd_counts_dct):
+        '''
+        Converts each word's number of occurrences to its overall frequency in the category
+        :param dictionary of <"string": int> pairs: E.g. {'word':5, 'automobile':7, 'dog':3}
+        :return: new dictionary in the form of {'word':0.33, 'automobile':0.46, 'dog':0.2}
+        '''
 
-        """
-        ''' NO.  Iterate through all categories, and see which is the most likely to contain these words'''
+        numb_words = float(sum(wrd_counts_dct.values()))                 # total number of words in category
 
-        category_votes = {cat: 0 for cat in self.categories}
+        # TODO: should this be return {key: 0.0 for key in word_dict.keys()}  ???
+        if not(numb_words):
+            return {}
 
-        for word in list_of_words:
-            most_likely_cat = ""
-            max_prob = 0
+        word_frequencies = dict()
 
-            for cat, dct in probability_dict.iteritems():#self.final_dict.iteritems():
+        # calculate word frequencies
+        if self.method == "raw":
+            for word, freq in wrd_counts_dct.items():# [pair for pair in occurrs_gen]: #
+                word_frequencies[word] = freq / numb_words
 
-                probability = dct.get(word)
+        elif self.method == "mest":                      # use m-estimate for tfidf as well
+            # Formula:  P(wk | vj) = (nk + 1) / (n + |Vocab|)
+            for wrd, frq in wrd_counts_dct.items(): #[pair for pair in occurrs_gen]:
+                word_frequencies[wrd] = (frq + 1.0) / (numb_words + self.uniqueVocSize)
 
-                if not(probability):    # Current newsgroup category does not contain current word
-                    continue
+        elif self.method == "tfidf":
+            # tf =  P(wk | vj) = (nk + 1) / (n + |Vocab|),  idf = log(total # categories / categories with wk)
+            for wrd, frq in wrd_counts_dct.items():
 
-                if (probability) > max_prob:
-                    most_likely_cat = cat
-                    max_prob = probability
+                tf = (frq + 1.0) / (numb_words + self.uniqueVocSize)
 
-                elif probability == max_prob:
-                    most_likely_cat = cat  # add a vote to this category too, because it's equally likely
+                count = len([key for key in self.final_dict.keys() if wrd in self.final_dict.get(key)])
 
-            # Handle error!!!
+                if count == 0:              # if a word has never been seen, treat it as if it is completely average
+                    count = self.numbCategories / 2#idf = 1.0
 
-            if not len(most_likely_cat):
-                continue
+                idf = math.log(self.numbCategories / (float(count)), 2)
+                idf = 0.0 if idf < 0.0 else idf
 
-            # print("Getting {} from dict".format(most_likely_cat))
+                word_frequencies[wrd] = tf * idf
 
-            category_votes[most_likely_cat] = category_votes.get(most_likely_cat) + 1
+        return word_frequencies
 
-        # self.convert_to_probability(category_votes)
+    def guess_category(self, list_of_words, prob_dict, version="raw"):
 
-        total_votes = float(sum(category_votes.itervalues()))
+        if not(len(self.categoryPriorProbs) and len(self.final_dict)):
+            raise SystemExit("Classifier has not been trained yet")
 
-        for cat, votes in category_votes.iteritems():
-            probability = self.categories.get(cat) * votes/total_votes
-
-
-        if not category_votes:
+        if not(len(list_of_words)):
+            print("List of words or probability dictionary is empty")
             return ""
 
-        # print("Category votes = ", category_votes)
+        assert len(prob_dict) > 1
 
-        max_votes = 0
-        k_to_return = ""
-        for k, v in category_votes.items():
-            if v > max_votes:
-                k_to_return = k
-                max_votes = v
+        category_probs = {}                                   # calculate probability of each category being the answer
+
+        for cat, dct in prob_dict.items():                    # e.g. "alt.atheism", {"word1":0.6, "word2":0.1,...}
+
+            probability = self.categoryPriorProbs.get(cat)    # start out with prior probability of category
+
+            for word in list_of_words:                        # multiply word probabilities
+
+                word_prob = dct.get(word)                     # (Wk  |  Vj)
+
+                if not word_prob:                             # handle the case of new unseen word
+
+                    if self.method == "raw":
+                        word_prob = 0.0       # TODO: Is this right???
+                    else:
+                        # calculate m-estimate probability of new unseen word, and add it to dictionary for future use
+                        n_words = float(self.categorySizes.get(cat))
+                        word_prob = (0 + 1) / (n_words + self.uniqueVocSize)
+                        dct[word] = word_prob
+
+                probability *= word_prob
+
+            category_probs[cat] = probability                 # assign calculated probability for each category
+
+        k_to_return = self.argmax(category_probs)
+
+        if not len(k_to_return):                              # If no guess calculated, make a random guess
+            k_to_return = random.choice(self.categoryPriorProbs.keys())
 
         return k_to_return
-        """
 
-def argmax(lst):
-    return lst.index(max(lst))
 
 def main():
 
-    verbose = False
-
     """
+    if len(sys.argv) != 4:
+        print("Usage: %s trainfile testfile" % sys.argv[0])
+        sys.exit(-1)
 
-    IMPORTANT:
+    trainfile, testfile, method = sys.argv[1], sys.argv[2], sys.argv[3]
 
-    Prior probability of each category is number of words in it DIVIDED by total number of words
-
-    :return:
+    nbclassifier = NaiveBayes(sys.argv[1])
+    nbclassifier.printTrain()
+    nbclassifier.runTest(sys.argv[2])
     """
+    method = "tfidf"
+    trainfile = "20ng-train-stemmed.txt"
+    testfile = "20ng-test-stemmed.txt"
 
-    filename = "word_dict"
+    nbclassifier = NaiveBayes(method, trainfile, save=False)
 
-    if not os.path.exists(filename + '.pickle'):
-        nbclassifier = NaiveBayes("20ng-train-stemmed.txt")
-    else:
-        nbclassifier = NaiveBayes()
-        nbclassifier.load_pickle_file(filename)
-
-    nbclassifier.printClasses()
-
-    if verbose:
-        for k in nbclassifier.final_dict:
-            print("Final dict: \n", k, ':\n', nbclassifier.final_dict.get(k))
-
-    accuracyScores = []
-
-    with open("20ng-test-stemmed.txt", "rb") as fd:
-
+    with open(testfile, "rb") as fd:
         document = fd.readlines()
         length = len(document)
 
@@ -311,65 +319,49 @@ def main():
     numb_right = 0
     total_numb = 0
 
-    start = time.time()
-
-    for cat in nbclassifier.categories:
-        print("Prior probability of {} is {}".format(cat, nbclassifier.categories.get(cat)))
-
-    probability_dict = dict()
-
-    for category, dct in nbclassifier.final_dict.iteritems():
+    probability_dict = dict()       # Construct dictionary of dictionaries, with word frequencies instead of occurrences
+    for category, dct in nbclassifier.final_dict.items():
         probability_dict[category] = nbclassifier.convert_to_probability(dct)
 
-    # for cat, val in probability_dict.items():
-    #     print("Category dict: {} {}".format(cat, val))
+    category_stats = {key: 0 for key in probability_dict.keys()}
+    category_lines = {key: 0 for key in probability_dict.keys()}
 
     for i, line in enumerate(document):
-        # id, *word = line.split()
-        data = line.split()
-        answer, wordsToClassify = data[0], data[1:]
 
-        guess = nbclassifier.guessCategory(wordsToClassify, probability_dict)
+        data = line.split()
+        answer, words_to_classify = data[0], data[1:]
+
+        guess = nbclassifier.guess_category(words_to_classify, probability_dict)
 
         if len(guess) > 0:
             if answer == guess:
-                if verbose:
-                    print("Guessed answer {} correctly".format(answer))
-                accuracyScores.append(1)
                 numb_right += 1
+                if answer in category_stats:
+                    category_stats[answer] = category_stats.get(answer) + 1
             else:
-                if verbose:
-                    print("Incorrectly guessed {}, correct answer was {}".format(guess, answer))
-                accuracyScores.append(0)
                 numb_wrong += 1
+
+        if answer in category_lines:
+            category_lines[answer] = category_lines.get(answer) + 1
 
         total_numb += 1
 
-        if not (i % 100):  # Print update every 100 lines
+        if not (i % 1000):  # Print update every 1000 lines
             print("Progress: {} of {} lines classified".format(i, length))
+    print("Progress: {} of {} lines classified".format(i+1, length))
 
-    print("Elapsed classification time: {}m {}s\nNumber correct: {}\nNumber incorrect: {}"
-          "\nTotal trials: {}\nFinal accuracy: {}".format(
-                                                          int((time.time() - start) / 60), (time.time() - start) % 60,
-                                                          numb_right, numb_wrong, total_numb,
-                                                          # float(sum(accuracyScores)) / len(accuracyScores)
-                                                          float(numb_right) / total_numb
-                                                          )
+    nbclassifier.printTest(category_stats, category_lines)
+    
+    print("------------------------------------------------------")
+    print("Number correct: {}\nNumber incorrect: {}"
+          "\nTotal trials: {}\nFinal accuracy: {}".format(numb_right, numb_wrong, total_numb,
+                                                          float(numb_right) / total_numb)
           )
 
-    raise SystemExit()
-
-
-    if len(sys.argv) != 3:
-        print("Usage: %s trainfile testfile" % sys.argv[0])
-        sys.exit(-1)
-
-    nbclassifier = NaiveBayes(sys.argv[1])
-    nbclassifier.printClasses()
-    nbclassifier.runTest(sys.argv[2])
-
 if __name__ == "__main__":
+    commencement = time.time()
     main()
+    print("Total elapsed run time: {}m {}s".format(int((time.time()-commencement) / 60), (time.time()-commencement)%60))
 
 
 
