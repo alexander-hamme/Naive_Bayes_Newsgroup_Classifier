@@ -203,7 +203,7 @@ class NaiveBayes():
             for word, freq in wrd_counts_dct.items():
                 word_frequencies[word] = freq / numb_words
 
-        elif self.method == "mest":                                      # use m-estimate for tfidf as well
+        elif self.method == "mest":
             # Formula:  P(wk | vj) = (nk + 1) / (n + |Vocab|)
             for wrd, frq in wrd_counts_dct.items():
                 word_frequencies[wrd] = (frq + 1.0) / (numb_words + self.uniqueVocSize)
@@ -219,8 +219,8 @@ class NaiveBayes():
                 if count == 0:              # if a word has never been seen, treat it as if it is completely average
                     count = self.numbCategories / 2    # (this gives slightly better results than ignoring it by making IDF = 1
 
-                # Using a very tiny base for the logarithm made all the difference,
-                # it went from 31% accuracy to 72%
+                # Using a base as close to 1.0 as possible for the logarithm greatly boosts the classification accuracy (from <40% to >70%)
+		# while effective, this is not easily justifiable, probabilistically or mathematically, so I need to find an alternative logical way to boost the accuracy.
                 idf = math.log(self.numbCategories / (float(count)), 1.000000000000001)
                 idf = 0.0 if idf < 0.0 else idf
 
