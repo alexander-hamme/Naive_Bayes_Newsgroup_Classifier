@@ -16,7 +16,7 @@ V<sub>NB</sub> is the classification that gives the maximum probability of obser
 
 **P(a<sub>l</sub>, ... a<sub>lll</sub> | v<sub>j</sub>) = *Π* P(a<sub>i</sub> | v<sub>j</sub>)**
 
-In this case, the independence assumption states that the word probabilities for any single position in the text are independent of the words that occur in other positions, given the newsgroup classification **v**<sub>j</sub>. (Obviously this assumption is incorrect, for example, there is a higher probability of the word "Bayes" occurring if the word "naive" is in the previous position.) However despite this incorrect indepence assumption, naive Bayes classifiers perform surprisingly well.
+In this case, the independence assumption states that the word probabilities for any single position in the text are independent of the words that occur in other positions, given the newsgroup classification **v**<sub>j</sub>. (Obviously this assumption is incorrect, for example, there is a higher probability of the word "Bayes" occurring if the word "naive" is in the previous position.) However despite this incorrect indepence assumption, naive Bayes learners perform surprisingly well.
 
 -----
 
