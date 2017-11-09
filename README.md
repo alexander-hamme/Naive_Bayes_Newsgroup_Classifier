@@ -14,6 +14,8 @@ V<sub>NB</sub> is the classification that gives the maximum probability of obser
 
 In this case, the independence assumption states that the word probabilities for any single position in the text are independent of the words that occur in other positions, given the newsgroup classification **v**<sub>j</sub>. (Obviously this assumption is incorrect, for example, there is a higher probability of the word "learning" occurring if the word "machine" is in the previous position.) However despite making this incorrect indepence assumption, naive Bayes classifiers still do remarkably well.
 
+
+
 the equation for TF-IDF (term frequency–inverse document frequency) is:
 
 ![### ***w<sub>i,j</sub> = tf<sub>i,j</sub> x log(N/df<sub>i</sub>)***](tfidf-equation.png "term frequency - inverse document frequency equation") 
