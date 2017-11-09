@@ -10,7 +10,7 @@ the classifier's accuracy for the three methods tested (raw probabilities, m-est
 
 The highest accuracy was achieved using both the TF-IDF weighting method and the m-estimate word probability equations.
 
-------
+-----
 
 ###### A few notes
 
