@@ -43,28 +43,11 @@ class NaiveBayes():
         with open(filename + '.pickle', 'rb') as handle:
             self.final_dict = pickle.load(handle)
 
-        self.categoryPriorProbs = self.final_dict.pop("prior_probabilities", None)
+        self.categoryPriorProbs = self.final_dict.pop("categoryPriorProbs", None)
+        self.categorySizes = self.final_dict.pop("categorySizes", None)
 
-        #TODO: self.categorySizes
-        # for cat, lst in category_dicts:
-        #     self.categorySizes[cat] = len(lst)
-
-        if not self.categoryPriorProbs:
-            raise SystemExit("Could not load prior_probabilities from serialized dictionary")
-
-        '''Does m-estimate have Uniform category Prior Probabilities???'''
-
-        # self.categoryPriorProbs = {key: 0.0 for key in self.final_dict.keys()}
-
-        total_numb_words = 0
-
-        # for cat in self.final_dict:
-        #     numb_words = sum(self.final_dict.get(cat).values())
-        #     self.categoryPriorProbs[cat] = numb_words
-        #     total_numb_words += numb_words
-        #
-        # for cat, val in self.categoryPriorProbs.items():
-        #     self.categoryPriorProbs[cat] = val / float(total_numb_words)
+        if not (self.categoryPriorProbs and self.categorySizes):
+            raise SystemExit("Could not load probabilities or prior probabilities from serialized dictionary")
 
         print("loaded pickle file")
 
@@ -188,10 +171,10 @@ class NaiveBayes():
 
         print("Total elapsed learning time: {}m {}s".format(int((time.time()-t)/60), (time.time()-t) % 60))
 
-        if save:        # serialize dictionary to file if desired
+        if save:        # optional, serialize dictionary to file
 
-            self.final_dict["prior_probabilities"] = self.categoryPriorProbs
-
+            self.final_dict["categoryPriorProbs"] = self.categoryPriorProbs        # save prior probabilities
+            self.final_dict["categorySizes"] = self.categorySizes
             with open(self.filename + '.pickle', 'wb') as handle:
                 pickle.dump(self.final_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
                 print("Serialized dictionary to file")
@@ -228,7 +211,7 @@ class NaiveBayes():
 
         elif self.method == "mest":                      # use m-estimate for tfidf as well
             # Formula:  P(wk | vj) = (nk + 1) / (n + |Vocab|)
-            for wrd, frq in wrd_counts_dct.items(): #[pair for pair in occurrs_gen]:
+            for wrd, frq in wrd_counts_dct.items():
                 word_frequencies[wrd] = (frq + 1.0) / (numb_words + self.uniqueVocSize)
 
         elif self.method == "tfidf":
@@ -249,7 +232,7 @@ class NaiveBayes():
 
         return word_frequencies
 
-    def guess_category(self, list_of_words, prob_dict, version="raw"):
+    def guess_category(self, list_of_words, prob_dict):
 
         if not(len(self.categoryPriorProbs) and len(self.final_dict)):
             raise SystemExit("Classifier has not been trained yet")
@@ -273,7 +256,7 @@ class NaiveBayes():
                 if not word_prob:                             # handle the case of new unseen word
 
                     if self.method == "raw":
-                        word_prob = 0.0       # TODO: Is this right???
+                        word_prob = 0.0
                     else:
                         # calculate m-estimate probability of new unseen word, and add it to dictionary for future use
                         n_words = float(self.categorySizes.get(cat))
@@ -305,6 +288,7 @@ def main():
     trainfile = "20ng-train-stemmed.txt"
     testfile = "20ng-test-stemmed.txt"
     """
+    
     nbclassifier = NaiveBayes(method, trainfile, save=False)
 
     with open(testfile, "rb") as fd:
@@ -351,7 +335,7 @@ def main():
     print("------------------------------------------------------")
     print("Number correct: {}\nNumber incorrect: {}"
           "\nTotal trials: {}\nFinal accuracy: {:.3f}".format(numb_right, numb_wrong, total_numb,
-                                                          float(numb_right) / total_numb) * 100
+                                                              float(numb_right) / total_numb * 100)
           )
 
 if __name__ == "__main__":
