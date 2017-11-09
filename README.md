@@ -4,7 +4,7 @@ simple naive bayes implementation for the classic Usenet newsgroups text classif
 
 ![probability equation image](equation.png "naive Bayes classification equation")
 
-![tf-idf equation image](tfidf-equation.png "term frequency - inverse document frequency equation")
+![tf-idf equation image](tfidf-equation.png "term frequency - inverse document frequency equation") 
 
 final accuracy was 72.97%, using TF-IDF weighting method and m-estimate word probability equations.
 
