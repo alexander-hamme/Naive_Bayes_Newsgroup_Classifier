@@ -3,9 +3,10 @@ simple naive bayes implementation for the classic Usenet newsgroups text classif
 <br>(project for Artificial Intelligence class.)
 
 the classifier's accuracy for the three methods tested (raw probabilities, m-estimate, and tf-idf weighted) were as follows:
-##### raw        - 10.069% 
-##### m-estimate - 45.842%
-##### tf-idf     - 72.968%
+
+**raw        - 10.069% 
+m-estimate - 45.842%
+tf-idf     - 72.968%**
 
 The highest accuracy was achieved using both the TF-IDF weighting method and the m-estimate word probability equations.
 
