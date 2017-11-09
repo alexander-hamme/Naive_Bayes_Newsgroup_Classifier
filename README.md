@@ -4,7 +4,7 @@ simple naive bayes implementation for the classic Usenet newsgroups text classif
 
 the classifier's accuracy for the three methods tested (raw probabilities, m-estimate, and tf-idf weighted) were as follows:
 
-**raw        - 10.069%<br>
+raw        - 10.069%<br>
 m-estimate - 45.842%<br>
 tf-idf     - 72.968%**
 
