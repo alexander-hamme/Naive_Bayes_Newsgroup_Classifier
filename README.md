@@ -20,7 +20,7 @@ the main equation used for the naive Bayes classification is:
 
 where:
 
-V<sub>NB</sub> is the classification that gives the maximum probability of observing the words that were actually found in the document (in this case, the newsgroup category), and of course this is subject to the naive Bayes independence assumption;
+V<sub>NB</sub> is the classification that gives the maximum probability of observing the words that were actually found in the document (in this case, the newsgroup article), and of course this is subject to the naive Bayes independence assumption;
 
 **P(a<sub>l</sub>, ... a<sub>lll</sub> | v<sub>j</sub>) = *Π* P(a<sub>i</sub> | v<sub>j</sub>)**
 
