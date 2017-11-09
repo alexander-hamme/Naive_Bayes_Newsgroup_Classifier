@@ -30,7 +30,7 @@ In this case, the independence assumption states that the word probabilities for
 
 the equation for TF-IDF (term frequency–inverse document frequency) is:
 
-![Oops! see "equation2.png" in this repository](tfidf-equation.png "term frequency - inverse document frequency equation") 
+![Oops! see "tfidf-equation.png" in this repository](tfidf-equation.png "term frequency - inverse document frequency equation") 
 
 TF-IDF weights word frequencies (term frequencies) by how *unlikely* each word is in the newsgroup category and in general (inverse document frequency), which often leads to improved results. For example, terms like "car" and "wheel" are more likely to appear in the newsgroup category "rec.autos" than in "rec.sport.baseball".
 
