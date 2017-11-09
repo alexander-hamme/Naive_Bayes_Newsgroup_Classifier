@@ -2,6 +2,10 @@
 simple naive bayes implementation for the classic Usenet newsgroups text classification problem.
 <br>(project for Artificial Intelligence class.)
 
+###### the classifier's final accuracy was 72.97%, using TF-IDF weighting method and m-estimate word probability equations.
+
+-----
+
 the main equation for the naive Bayes classification is:
 
 ![probability equation image](equation.png "naive Bayes classification equation")
@@ -21,7 +25,5 @@ the equation for TF-IDF (term frequency–inverse document frequency) is:
 ![### ***w<sub>i,j</sub> = tf<sub>i,j</sub> x log(N/df<sub>i</sub>)***](tfidf-equation.png "term frequency - inverse document frequency equation") 
 
 TF-IDF weights word frequencies (term frequencies) by how *unlikely* each word is in the newsgroup category (inverse document frequency), which often leads to improved results. For example, terms like "car" and "wheel" are more likely to appear in the newsgroup category "rec.autos" than in "rec.sport.baseball".
-
-##### the classifier's final accuracy was 72.97%, using TF-IDF weighting method and m-estimate word probability equations.
 
 
