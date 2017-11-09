@@ -55,8 +55,8 @@ class NaiveBayes():
 
         print("############### TRAIN OUTPUT #########################")
         print("Total # words\t{}".format(self.fullVocSize))
-        print("VocabSize\t\t{}".format(self.uniqueVocSize))
-        print("------------------------------------------------------")
+        print("VocabSize\t{}".format(self.uniqueVocSize))
+        print("-"*103)
         print("Category\t\t\tNDoc\t\t\t    NWords\t\t\tP(cat)")
 
         for cat, dct in prob_dict.items():
@@ -66,7 +66,7 @@ class NaiveBayes():
 
     def printTest(self, cat_stats, cat_lines):
         print("\n############### TEST OUTPUT #########################")
-        print("Category\t\t\tNCorrect\t\t\t    N\t\t\t%corr")
+        print("Category\t\t\tNCorrect\t\t\t N\t\t\t%corr")
         for cat, numb in cat_stats.items():
             print("{:<25} {:>10}\t\t\t{:>10}\t\t\t{:>10}".format(
                 cat, numb, cat_lines.get(cat), numb / float(cat_lines.get(cat))
@@ -124,8 +124,6 @@ class NaiveBayes():
 
         print("\nLearning...\n")
 
-        t = time.time()
-
         category_dicts, full_vocab = self.load_text_file(traindat)
 
         assert len(category_dicts) > 1
@@ -169,8 +167,6 @@ class NaiveBayes():
 
             self.final_dict[cat] = counts    # dictionary of dictionaries, of form {"category1": {"word1": 3, ...}, ...}
 
-        print("Total elapsed learning time: {}m {}s".format(int((time.time()-t)/60), (time.time()-t) % 60))
-
         if save:        # optional, serialize dictionary to file
 
             self.final_dict["categoryPriorProbs"] = self.categoryPriorProbs        # save prior probabilities
@@ -198,18 +194,16 @@ class NaiveBayes():
 
         numb_words = float(sum(wrd_counts_dct.values()))                 # total number of words in category
 
-        # TODO: should this be return {key: 0.0 for key in word_dict.keys()}  ???
         if not(numb_words):
             return {}
 
         word_frequencies = dict()
 
-        # calculate word frequencies
-        if self.method == "raw":
-            for word, freq in wrd_counts_dct.items():# [pair for pair in occurrs_gen]: #
+        if self.method == "raw":                                         # calculate word frequencies
+            for word, freq in wrd_counts_dct.items():
                 word_frequencies[word] = freq / numb_words
 
-        elif self.method == "mest":                      # use m-estimate for tfidf as well
+        elif self.method == "mest":                                      # use m-estimate for tfidf as well
             # Formula:  P(wk | vj) = (nk + 1) / (n + |Vocab|)
             for wrd, frq in wrd_counts_dct.items():
                 word_frequencies[wrd] = (frq + 1.0) / (numb_words + self.uniqueVocSize)
@@ -223,9 +217,11 @@ class NaiveBayes():
                 count = len([key for key in self.final_dict.keys() if wrd in self.final_dict.get(key)])
 
                 if count == 0:              # if a word has never been seen, treat it as if it is completely average
-                    count = self.numbCategories / 2#idf = 1.0
+                    count = self.numbCategories / 2    # (this gives slightly better results than ignoring it by making IDF = 1
 
-                idf = math.log(self.numbCategories / (float(count)), 2)
+                # Using a very tiny base for the logarithm made all the difference,
+                # it went from 31% accuracy to 72%
+                idf = math.log(self.numbCategories / (float(count)), 1.000000000000001)
                 idf = 0.0 if idf < 0.0 else idf
 
                 word_frequencies[wrd] = tf * idf
@@ -258,7 +254,7 @@ class NaiveBayes():
                     if self.method == "raw":
                         word_prob = 0.0
                     else:
-                        # calculate m-estimate probability of new unseen word, and add it to dictionary for future use
+                        # calculate m-estimate probability of new unseen word, and add it to dictionary for future check
                         n_words = float(self.categorySizes.get(cat))
                         word_prob = (0 + 1) / (n_words + self.uniqueVocSize)
                         dct[word] = word_prob
@@ -269,7 +265,7 @@ class NaiveBayes():
 
         k_to_return = self.argmax(category_probs)
 
-        if not len(k_to_return):                              # If no guess calculated, make a random guess
+        if not len(k_to_return):                              # if no guess calculated, make a random guess
             k_to_return = random.choice(self.categoryPriorProbs.keys())
 
         return k_to_return
@@ -288,7 +284,7 @@ def main():
     trainfile = "20ng-train-stemmed.txt"
     testfile = "20ng-test-stemmed.txt"
     """
-    
+
     nbclassifier = NaiveBayes(method, trainfile, save=False)
 
     with open(testfile, "rb") as fd:
@@ -303,8 +299,8 @@ def main():
     for category, dct in nbclassifier.final_dict.items():
         probability_dict[category] = nbclassifier.convert_to_probability(dct)
 
-    category_stats = {key: 0 for key in probability_dict.keys()}
-    category_lines = {key: 0 for key in probability_dict.keys()}
+    category_stats = {key: 0 for key in probability_dict.keys()}        # number guessed correctly per category
+    category_lines = {key: 0 for key in probability_dict.keys()}        # total number of tests per category
 
     for i, line in enumerate(document):
 
@@ -314,25 +310,23 @@ def main():
         guess = nbclassifier.guess_category(words_to_classify, probability_dict)
 
         if len(guess) > 0:
-            if answer == guess:
+            if answer == guess:                                         # if guessed correctly
                 numb_right += 1
-                if answer in category_stats:
-                    category_stats[answer] = category_stats.get(answer) + 1
+                category_stats[answer] = category_stats.get(answer) + 1
             else:
                 numb_wrong += 1
 
-        if answer in category_lines:
-            category_lines[answer] = category_lines.get(answer) + 1
+        category_lines[answer] = category_lines.get(answer) + 1
 
         total_numb += 1
 
         if not (i % 1000):  # Print update every 1000 lines
-            print("Progress: {} of {} lines classified".format(i, length))
-    print("Progress: {} of {} lines classified".format(i+1, length))
+            print("progress: {} of {} lines classified".format(i, length))
+    print("progress: {} of {} lines classified".format(i+1, length))
 
     nbclassifier.printTest(category_stats, category_lines)
 
-    print("------------------------------------------------------")
+    print("-"*102)
     print("Number correct: {}\nNumber incorrect: {}"
           "\nTotal trials: {}\nFinal accuracy: {:.3f}".format(numb_right, numb_wrong, total_numb,
                                                               float(numb_right) / total_numb * 100)
