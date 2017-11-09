@@ -3,6 +3,7 @@ simple naive bayes implementation for the classic Usenet newsgroups text classif
 <br>(project for Artificial Intelligence class.)
 
 the main equation for the naive Bayes classification:
+
 ![probability equation image](equation.png "naive Bayes classification equation")
 
 where:
