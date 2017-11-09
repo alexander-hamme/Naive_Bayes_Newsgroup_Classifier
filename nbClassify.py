@@ -74,7 +74,7 @@ class NaiveBayes():
         print("Total # words\t{}".format(self.fullVocSize))
         print("VocabSize\t\t{}".format(self.uniqueVocSize))
         print("------------------------------------------------------")
-        print("Category\t\t\t\t\t\t NDoc\t\t\t\tNWords\t\t\tP(cat)")
+        print("Category\t\t\tNDoc\t\t\t    NWords\t\t\tP(cat)")
 
         for cat, dct in prob_dict.items():
             print("{:<25} {:>10}\t\t\t{:>10}\t\t\t{:>10}".format(
@@ -83,7 +83,7 @@ class NaiveBayes():
 
     def printTest(self, cat_stats, cat_lines):
         print("\n############### TEST OUTPUT #########################")
-        print("Category\t\t\t\t\t\tNCorrect\t\t\t\tN\t\t\t%corr")
+        print("Category\t\t\tNCorrect\t\t\t    N\t\t\t%corr")
         for cat, numb in cat_stats.items():
             print("{:<25} {:>10}\t\t\t{:>10}\t\t\t{:>10}".format(
                 cat, numb, cat_lines.get(cat), numb / float(cat_lines.get(cat))
@@ -294,21 +294,17 @@ class NaiveBayes():
 
 def main():
 
-    """
     if len(sys.argv) != 4:
-        print("Usage: %s trainfile testfile" % sys.argv[0])
+        print("Usage: {} trainfile testfile ['raw' | 'mest' | 'tfidf']".format(sys.argv[0]))
         sys.exit(-1)
 
     trainfile, testfile, method = sys.argv[1], sys.argv[2], sys.argv[3]
 
-    nbclassifier = NaiveBayes(sys.argv[1])
-    nbclassifier.printTrain()
-    nbclassifier.runTest(sys.argv[2])
     """
     method = "tfidf"
     trainfile = "20ng-train-stemmed.txt"
     testfile = "20ng-test-stemmed.txt"
-
+    """
     nbclassifier = NaiveBayes(method, trainfile, save=False)
 
     with open(testfile, "rb") as fd:
@@ -351,11 +347,11 @@ def main():
     print("Progress: {} of {} lines classified".format(i+1, length))
 
     nbclassifier.printTest(category_stats, category_lines)
-    
+
     print("------------------------------------------------------")
     print("Number correct: {}\nNumber incorrect: {}"
-          "\nTotal trials: {}\nFinal accuracy: {}".format(numb_right, numb_wrong, total_numb,
-                                                          float(numb_right) / total_numb)
+          "\nTotal trials: {}\nFinal accuracy: {:.3f}".format(numb_right, numb_wrong, total_numb,
+                                                          float(numb_right) / total_numb) * 100
           )
 
 if __name__ == "__main__":
