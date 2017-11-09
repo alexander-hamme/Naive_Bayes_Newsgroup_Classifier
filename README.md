@@ -4,6 +4,6 @@ simple naive bayes implementation for classic Usenet newsgroups text classificat
 
 
 
-final accuracy was 72.69%, using TF-IDF weighting method and m-estimate word probability equations.
+final accuracy was 72.97%, using TF-IDF weighting method and m-estimate word probability equations.
 
 
