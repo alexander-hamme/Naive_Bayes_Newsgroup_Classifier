@@ -16,7 +16,7 @@ The highest accuracy was achieved using both the TF-IDF weighting method and the
 
 the main equation used for the naive Bayes classification is:
 
-![probability equation image](equation.png "naive Bayes classification equation")
+![see "equation.png" in this repository](equation.png "naive Bayes classification equation")
 
 where:
 
@@ -30,7 +30,7 @@ In this case, the independence assumption states that the word probabilities for
 
 the equation for TF-IDF (term frequency–inverse document frequency) is:
 
-![***w<sub>i,j</sub> = tf<sub>i,j</sub> x log(N/df<sub>i</sub>)***](tfidf-equaytion.png "term frequency - inverse document frequency equation") 
+![`Oops! see "equation2.png" in this repository`](tfidf-equaytion.png "term frequency - inverse document frequency equation") 
 
 TF-IDF weights word frequencies (term frequencies) by how *unlikely* each word is in the newsgroup category (inverse document frequency), which often leads to improved results. For example, terms like "car" and "wheel" are more likely to appear in the newsgroup category "rec.autos" than in "rec.sport.baseball".
 
