@@ -2,11 +2,11 @@
 simple naive bayes implementation for the classic Usenet newsgroups text classification problem.
 <br>(project for Artificial Intelligence class.)
 
-###### the classifier's final accuracy was 72.97%, using TF-IDF weighting method and m-estimate word probability equations.
+the classifier's final accuracy was 72.97%, using TF-IDF weighting method and m-estimate word probability equations.
 
 -----
 
-the main equation for the naive Bayes classification is:
+###### the main equation for the naive Bayes classification is:
 
 ![probability equation image](equation.png "naive Bayes classification equation")
 
@@ -20,7 +20,7 @@ In this case, the independence assumption states that the word probabilities for
 
 -----
 
-the equation for TF-IDF (term frequency–inverse document frequency) is:
+###### the equation for TF-IDF (term frequency–inverse document frequency) is:
 
 ![### ***w<sub>i,j</sub> = tf<sub>i,j</sub> x log(N/df<sub>i</sub>)***](tfidf-equation.png "term frequency - inverse document frequency equation") 
 
