@@ -14,7 +14,7 @@ The highest accuracy was achieved using both the TF-IDF weighting method and the
 
 ###### A few notes
 
-the main equation used for the naive Bayes classification is:
+The main equation used for the naive Bayes classification is:
 
 ![Oops! see "equation.png" in this repository](equation.png "naive Bayes classification equation")
 
@@ -28,7 +28,7 @@ In this case, the independence assumption states that the word probabilities for
 
 -----
 
-Finally, the equation for TF-IDF (term frequency–inverse document frequency) is:
+The equation for TF-IDF (term frequency–inverse document frequency) is:
 
 ![Oops! see "tfidf-equation.png" in this repository](tfidf-equation.png "term frequency - inverse document frequency equation") 
 
