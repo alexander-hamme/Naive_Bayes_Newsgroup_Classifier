@@ -28,7 +28,7 @@ In this case, the independence assumption states that the word probabilities for
 
 -----
 
-the equation for TF-IDF (term frequency–inverse document frequency) is:
+Finally, the equation for TF-IDF (term frequency–inverse document frequency) is:
 
 ![Oops! see "tfidf-equation.png" in this repository](tfidf-equation.png "term frequency - inverse document frequency equation") 
 
